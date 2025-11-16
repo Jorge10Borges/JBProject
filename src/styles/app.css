@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+	/* Tipografía personalizada: crea la utilidad font-display */
+	--font-display: system-ui, ui-sans-serif,  sans-serif;
+
+	/* Paleta de marca: crea utilidades bg-brand-*, text-brand-*, etc. */
+	--color-brand-50: oklch(0.98 0.01 240);
+	--color-brand-100: oklch(0.96 0.02 240);
+	--color-brand-200: oklch(0.92 0.04 240);
+	--color-brand-300: oklch(0.86 0.08 240);
+	--color-brand-400: oklch(0.78 0.12 240);
+	--color-brand-500: oklch(0.72 0.14 240);
+	--color-brand-600: oklch(0.64 0.16 240);
+	--color-brand-700: oklch(0.56 0.16 240);
+	--color-brand-800: oklch(0.49 0.13 240);
+	--color-brand-900: oklch(0.43 0.10 240);
+
+	--color-brand-CharcoalBlue: #38464F;
+	--color-brand-SlateBlue: #274A60;
+	--color-brand-Glaucous: #6973C0;
+	--color-brand-PearlyPurple: #A95F9F;
+	
+}
