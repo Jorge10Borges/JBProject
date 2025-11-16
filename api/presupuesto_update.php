@@ -29,16 +29,43 @@ if (!in_array($estado, $estadosValidos)) {
 }
 
 $mysqli = get_mysqli();
-$stmt = $mysqli->prepare('UPDATE presupuesto SET estado = ? WHERE id = ?');
-if ($stmt) {
-    $stmt->bind_param('si', $estado, $id);
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true]);
+
+// Si el estado es 'aprobado', también actualiza monto y updated_at
+if ($estado === 'aprobado') {
+    // Calcular el monto sumando los subtotales de los items
+    $sqlMonto = "SELECT SUM(cantidad * precio) AS total FROM presupuesto_detalle WHERE presupuesto_id = ?";
+    $stmtMonto = $mysqli->prepare($sqlMonto);
+    $stmtMonto->bind_param('i', $id);
+    $stmtMonto->execute();
+    $resMonto = $stmtMonto->get_result();
+    $rowMonto = $resMonto->fetch_assoc();
+    $monto = $rowMonto ? floatval($rowMonto['total']) : 0;
+    $stmtMonto->close();
+
+    $stmt = $mysqli->prepare('UPDATE presupuesto SET estado = ?, monto = ?, updated_at = NOW() WHERE id = ?');
+    if ($stmt) {
+        $stmt->bind_param('sdi', $estado, $monto, $id);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Error en la base de datos', 'details' => $stmt->error]);
+        }
+        $stmt->close();
     } else {
-        echo json_encode(['success' => false, 'error' => 'Error en la base de datos', 'details' => $stmt->error]);
+        echo json_encode(['success' => false, 'error' => 'Error preparando la consulta', 'details' => $mysqli->error]);
     }
-    $stmt->close();
 } else {
-    echo json_encode(['success' => false, 'error' => 'Error preparando la consulta', 'details' => $mysqli->error]);
+    $stmt = $mysqli->prepare('UPDATE presupuesto SET estado = ? WHERE id = ?');
+    if ($stmt) {
+        $stmt->bind_param('si', $estado, $id);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Error en la base de datos', 'details' => $stmt->error]);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Error preparando la consulta', 'details' => $mysqli->error]);
+    }
 }
 $mysqli->close();

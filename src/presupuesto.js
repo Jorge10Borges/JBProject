@@ -292,15 +292,15 @@ function render() {
       </td>
       <td class="px-3 py-2 text-right align-top">
         <div class="flex flex-col items-end">
-          <select data-id="${it.id}" data-field="unidad" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">${unitOptionsHTML(selectedUnit)}</select>
-          <input type="text" value="${customUnit}" placeholder="Especificar unidad" data-id="${it.id}" data-field="unidad-custom" class="${selectedUnit === "OTRO" ? "" : "hidden"} mt-1 w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          <select data-id="${it.id}" data-field="unidad" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"${window._esAprobado ? ' disabled' : ''}>${unitOptionsHTML(selectedUnit)}</select>
+          <input type="text" value="${customUnit}" placeholder="Especificar unidad" data-id="${it.id}" data-field="unidad-custom" class="${selectedUnit === "OTRO" ? "" : "hidden"} mt-1 w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"${window._esAprobado ? ' disabled' : ''} />
         </div>
       </td>
       <td class="px-3 py-2 text-right align-top">
-        <input type="number" min="0" step="1" value="${it.cantidad}" data-id="${it.id}" data-field="cantidad" class="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input type="number" min="0" step="1" value="${it.cantidad}" data-id="${it.id}" data-field="cantidad" class="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"${window._esAprobado ? ' disabled' : ''} />
       </td>
       <td class="px-3 py-2 text-right align-top">
-        <input type="number" min="0" step="0.01" value="${it.precio}" data-id="${it.id}" data-field="precio" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input type="number" min="0" step="0.01" value="${it.precio}" data-id="${it.id}" data-field="precio" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"${window._esAprobado ? ' disabled' : ''} />
       </td>
       <td class="px-3 py-2 text-right align-top font-medium">${format(subtotal)}</td>
       ${!esAprobado ? `<td class="px-3 py-2 text-center align-top flex gap-2 justify-center">
