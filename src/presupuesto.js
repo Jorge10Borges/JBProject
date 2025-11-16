@@ -75,6 +75,32 @@ function showToast(message, type = "success") {
   }, 2500);
 }
 
+// Modal de confirmación para eliminar
+function getDeleteConfirmModal() {
+  let modal = document.getElementById('delete-confirm-modal');
+  if (!modal) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = `
+      <div id="delete-confirm-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 opacity-0 transition-opacity duration-200">
+        <div id="delete-confirm-card" class="bg-white rounded shadow-lg p-4 w-[92vw] max-w-md transform transition-transform duration-200 scale-95">
+          <h3 class="text-base font-semibold text-zinc-900">Confirmar eliminación</h3>
+          <p id="delete-confirm-text" class="mt-2 text-sm text-zinc-600"></p>
+          <div class="mt-4 flex justify-end gap-2">
+            <button id="delete-confirm-cancel" class="px-3 py-1 rounded border border-zinc-300 text-zinc-800 hover:bg-zinc-50">Cancelar</button>
+            <button id="delete-confirm-yes" class="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Eliminar</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(wrapper.firstElementChild);
+    modal = document.getElementById('delete-confirm-modal');
+  }
+  const textEl = document.getElementById('delete-confirm-text');
+  const yesBtn = document.getElementById('delete-confirm-yes');
+  const cancelBtn = document.getElementById('delete-confirm-cancel');
+  const cardEl = document.getElementById('delete-confirm-card');
+  return { modal, textEl, yesBtn, cancelBtn, cardEl };
+}
+
 // Cargar ítems de la actividad desde el backend si hay actividadId
 async function loadItemsFromBackend() {
   // Si hay id de presupuesto, cargar por presupuesto_id
@@ -131,23 +157,22 @@ function calcTotal() {
 }
 
 function render() {
+  // ...solo renderizado, sin delegación de eventos...
+  if (!tbody || !totalCell) return;
   tbody.innerHTML = "";
-  items.forEach((it) => {
+  items.forEach((it, idx) => {
     const tr = document.createElement("tr");
-    tr.className = "hover:bg-zinc-50 transition";
-
     const subtotal = it.cantidad * it.precio;
     const isKnown = UNIT_OPTIONS.includes(it.unidad);
     const selectedUnit = isKnown ? it.unidad : "OTRO";
     const customUnit = selectedUnit === "OTRO" ? it.unidad || "" : "";
 
     tr.innerHTML = `
+      <td class="px-3 py-2 text-center align-top">${idx + 1}</td>
       <td class="px-3 py-2 align-top">
         <div class="flex items-center gap-2 group">
           <span class="block font-medium">${it.descripcion}</span>
-          <button title="Editar descripción" class="opacity-0 group-hover:opacity-100 transition cursor-pointer edit-desc-btn" data-action="edit-desc" data-id="${
-            it.id
-          }" aria-label="Editar descripción">
+          <button title="Editar descripción" class="opacity-0 group-hover:opacity-100 transition cursor-pointer edit-desc-btn" data-action="edit-desc" data-id="${it.id}" aria-label="Editar descripción">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-edit">
               <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
               <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
@@ -155,44 +180,38 @@ function render() {
               <path d="M16 5l3 3" />
             </svg>
           </button>
+          <button title="Copiar descripción" class="opacity-0 group-hover:opacity-100 transition cursor-pointer copy-desc-btn" data-action="copy-desc" data-id="${it.id}" aria-label="Copiar descripción">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-copy">
+              <rect x="8" y="8" width="12" height="12" rx="2" />
+              <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2" />
+            </svg>
+          </button>
         </div>
       </td>
       <td class="px-3 py-2 text-right align-top">
         <div class="flex flex-col items-end">
-          <select data-id="${
-            it.id
-          }" data-field="unidad" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">${unitOptionsHTML(
-      selectedUnit
-    )}</select>
-          <input type="text" value="${customUnit}" placeholder="Especificar unidad" data-id="${it.id}" data-field="unidad-custom" class="${
-      selectedUnit === "OTRO" ? "" : "hidden"
-    } mt-1 w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          <select data-id="${it.id}" data-field="unidad" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">${unitOptionsHTML(selectedUnit)}</select>
+          <input type="text" value="${customUnit}" placeholder="Especificar unidad" data-id="${it.id}" data-field="unidad-custom" class="${selectedUnit === "OTRO" ? "" : "hidden"} mt-1 w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </div>
       </td>
       <td class="px-3 py-2 text-right align-top">
-        <input type="number" min="0" step="1" value="${it.cantidad}" data-id="${
-      it.id
-    }" data-field="cantidad" class="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input type="number" min="0" step="1" value="${it.cantidad}" data-id="${it.id}" data-field="cantidad" class="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </td>
       <td class="px-3 py-2 text-right align-top">
-        <input type="number" min="0" step="0.01" value="${it.precio}" data-id="${
-      it.id
-    }" data-field="precio" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input type="number" min="0" step="0.01" value="${it.precio}" data-id="${it.id}" data-field="precio" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </td>
       <td class="px-3 py-2 text-right align-top font-medium">${format(subtotal)}</td>
       <td class="px-3 py-2 text-center align-top flex gap-2 justify-center">
-        <button data-action="guardar" data-id="${it.id}" class="text-xs rounded bg-brand-100 text-brand-700 px-2 py-1 hover:bg-brand-200 ${
-      it._dirty ? "cursor-pointer opacity-100" : "cursor-not-allowed opacity-10"
-    }" ${it._dirty ? "" : "disabled"}>Guardar</button>
-        <button data-action="delete" data-id="${
-          it.id
-        }" class="text-xs rounded bg-red-100 text-red-700 px-2 py-1 hover:bg-red-200 cursor-pointer">Eliminar</button>
+        <button data-action="guardar" data-id="${it.id}" class="text-xs rounded bg-brand-100 text-brand-700 px-2 py-1 hover:bg-brand-200 ${it._dirty ? "cursor-pointer opacity-100" : "cursor-not-allowed opacity-10"}" ${it._dirty ? "" : "disabled"}>Guardar</button>
+        <button data-action="delete" data-id="${it.id}" class="text-xs rounded bg-red-100 text-red-700 px-2 py-1 hover:bg-red-200 cursor-pointer">Eliminar</button>
       </td>
     `;
-
     tbody.appendChild(tr);
   });
+
   totalCell.textContent = format(calcTotal());
+
+  // (Eliminado: la funcionalidad de copiar ahora solo se maneja por delegación de eventos en tbody.onclick)
 }
 
 function addItem({ descripcion, cantidad, precio }) {
@@ -205,161 +224,217 @@ function addItem({ descripcion, cantidad, precio }) {
   render();
 }
 
-// Eventos
-// --- INICIALIZACIÓN PRINCIPAL ---
 async function setProjectAndActividadTitles() {
   const projectTitle = document.getElementById("project-title");
   const actividadTitle = document.getElementById("actividad-title");
   const presupuestoH2 = document.getElementById("presupuesto-title");
-
-  try {
-    // Si hay id de presupuesto, cargarlo directamente
-    if (presupuestoId && presupuestoH2) {
-      const res = await fetch((config.apiBaseUrl || "/api/") + `presupuesto_info.php?id=${encodeURIComponent(presupuestoId)}`);
-      if (res.ok) {
-        const presupuesto = await res.json();
-        if (presupuesto && presupuesto.nombre) {
-          presupuestoH2.textContent = `Presupuesto: ${presupuesto.nombre}`;
-        }
-        // Cargar nombre de la actividad asociada si existe
-        if (presupuesto && presupuesto.actividades_id && actividadTitle) {
-          const resAct = await fetch((config.apiBaseUrl || "/api/") + `actividad_info.php?id=${encodeURIComponent(presupuesto.actividades_id)}`);
-          if (resAct.ok) {
-            const actividad = await resAct.json();
-            if (actividad && actividad.nombre) {
-              actividadTitle.textContent = actividad.nombre;
-            }
-          }
-        }
-      }
-    } else {
-      // Lógica anterior si no hay id de presupuesto
-      if (projectId && projectTitle) {
-        const res = await fetch((config.apiBaseUrl || "/api/") + "projects.php");
-        if (res.ok) {
-          const projects = await res.json();
-          const project = projects.find((p) => String(p.id) === String(projectId));
-          if (project) projectTitle.textContent = project.name;
-        }
-      }
-      if (actividadId && actividadTitle) {
-        const res = await fetch((config.apiBaseUrl || "/api/") + `actividades.php?project_id=${encodeURIComponent(projectId)}`);
-        if (res.ok) {
-          const actividades = await res.json();
-          const actividad = actividades.find((a) => String(a.id) === String(actividadId));
-          if (actividad) actividadTitle.textContent = actividad.nombre;
-        }
-      }
-      if (actividadId && presupuestoH2) {
-        const res = await fetch((config.apiBaseUrl || "/api/") + `presupuesto.php?project_id=${encodeURIComponent(projectId)}`);
-        if (res.ok) {
-          const presupuestos = await res.json();
-          const presupuesto = presupuestos.find((p) => String(p.actividad_id) === String(actividadId));
-          if (presupuesto && presupuesto.nombre) {
-            presupuestoH2.textContent = `Presupuesto: ${presupuesto.nombre}`;
-          } else {
-            presupuestoH2.textContent = "Presupuesto";
-          }
-        }
-      }
-    }
-  } catch (e) {
-    // Silenciar error
-  }
+    // ...solo renderizado, sin delegación de eventos...
 }
 
-(async function init() {
-  await setProjectAndActividadTitles();
-  await loadItemsFromBackend();
-  render();
-})();
-
-// --- FIN INICIALIZACIÓN PRINCIPAL ---
-
-// ...existing code...
-// --- DESCARGAR PDF ---
-
-let jsPDFLib = null;
-let autoTableLib = null;
-
-async function ensureJsPDF() {
-  if (!jsPDFLib) {
-    jsPDFLib = (await import('jspdf')).jsPDF;
+// Delegación de eventos para editar, copiar y eliminar ítems (solo una vez, fuera de cualquier función)
+tbody.onclick = function(e) {
+  const editBtn = e.target.closest('.edit-desc-btn');
+  if (editBtn) {
+    const id = editBtn.getAttribute('data-id');
+    const item = items.find(it => String(it.id) === String(id));
+    if (!item) return;
+    const modal = document.getElementById('edit-desc-modal');
+    const input = document.getElementById('edit-desc-input');
+    const saveBtn = document.getElementById('edit-desc-save');
+    const cancelBtn = document.getElementById('edit-desc-cancel');
+    if (!modal || !input || !saveBtn || !cancelBtn) return;
+    input.value = item.descripcion;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    // Limpiar listeners previos
+    saveBtn.onclick = null;
+    cancelBtn.onclick = null;
+    saveBtn.onclick = async () => {
+      const nuevaDesc = input.value.trim();
+      if (!nuevaDesc) return;
+      try {
+        const apiBase = config.apiBaseUrl || "/api/";
+        const url = apiBase.replace(/\/$/, "") + "/presupuesto_item_update.php";
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: Number(id), descripcion: nuevaDesc }),
+        });
+        if (!res.ok) throw new Error("Error guardando descripción");
+        const data = await res.json();
+        if (!data.success) throw new Error("Respuesta inválida del servidor");
+        items = items.map(it => it.id === id ? { ...it, descripcion: nuevaDesc } : it);
+        render();
+        showToast("Descripción actualizada");
+      } catch (err) {
+        showToast("No se pudo actualizar la descripción", "error");
+      } finally {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    };
+    cancelBtn.onclick = () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    };
+    input.onkeydown = (ev) => {
+      if (ev.key === 'Enter') saveBtn.click();
+      if (ev.key === 'Escape') cancelBtn.click();
+    };
+    setTimeout(() => input.focus(), 100);
+    return;
   }
-  if (!autoTableLib) {
-    autoTableLib = (await import('jspdf-autotable')).default;
-  }
-}
-
-const descargarPdfBtn = document.getElementById("descargar-pdf-btn");
-if (descargarPdfBtn) {
-  descargarPdfBtn.addEventListener("click", async () => {
-    await ensureJsPDF();
-    // Obtener datos del presupuesto actual
-    const presupuestoH2 = document.getElementById("presupuesto-title");
-    const actividadTitle = document.getElementById("actividad-title");
-    const projectTitle = document.getElementById("project-title");
-    const fechaHora = new Date();
-    const fechaStr = fechaHora.toLocaleDateString();
-    const horaStr = fechaHora.toLocaleTimeString();
-
-    // Asegurarse de tener los ítems cargados
-    await loadItemsFromBackend();
-
-    // Formato de moneda: miles con punto, decimales con coma
-    function formatMoney(num) {
-      return Number(num).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Copiar descripción
+  const copyBtn = e.target.closest('.copy-desc-btn');
+  if (copyBtn) {
+    const id = copyBtn.getAttribute('data-id');
+    const item = items.find(it => String(it.id) === String(id));
+    if (item) {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(item.descripcion)
+          .then(() => showToast('Descripción copiada', 'info'))
+          .catch(() => showToast('No se pudo copiar', 'error'));
+      } else {
+        // Fallback para navegadores sin clipboard API
+        const temp = document.createElement('textarea');
+        temp.value = item.descripcion;
+        document.body.appendChild(temp);
+        temp.select();
+        try {
+          document.execCommand('copy');
+          showToast('Descripción copiada', 'info');
+        } catch {
+          showToast('No se pudo copiar', 'error');
+        }
+        document.body.removeChild(temp);
+      }
     }
-
-    // Crear PDF
-    const doc = new jsPDFLib();
-    let y = 15;
-    doc.setFontSize(16);
-    doc.text(projectTitle?.textContent || "", 14, y);
-    y += 8;
-    doc.setFontSize(12);
-    doc.text(actividadTitle?.textContent || "", 14, y);
-    y += 8;
-    doc.text(presupuestoH2?.textContent || "Presupuesto", 14, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Fecha de descarga: ${fechaStr} ${horaStr}`, 14, y);
-    y += 8;
-
-    // Tabla de ítems
-    const tableData = items.map(it => [
-      it.descripcion,
-      it.unidad,
-      it.cantidad,
-      formatMoney(it.precio),
-      formatMoney(it.cantidad * it.precio)
-    ]);
-
-    // Agregar fila de total
-    const total = items.reduce((acc, it) => acc + (Number(it.cantidad) * Number(it.precio)), 0);
-    tableData.push([
-      { content: 'TOTAL', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
-      { content: formatMoney(total), styles: { fontStyle: 'bold', halign: 'right' } }
-    ]);
-
-    autoTableLib(doc, {
-      head: [["Descripción", "Unidad", "Cantidad", "P. U.", "Subtotal"]],
-      body: tableData,
-      startY: y,
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [41, 128, 185] },
-      margin: { left: 14, right: 14 },
-      columnStyles: {
-        1: { halign: 'center' }, // Unidad
-        2: { halign: 'center' }, // Cantidad
-        3: { halign: 'right' },  // P. U.
-        4: { halign: 'right' }   // Subtotal
+    return;
+  }
+  // Guardar cambios de la fila
+  const saveBtn = e.target.closest('button[data-action="guardar"]');
+  if (saveBtn) {
+    const id = saveBtn.getAttribute('data-id');
+    const item = items.find(it => String(it.id) === String(id));
+    if (!item) return;
+    const tr = saveBtn.closest('tr');
+    const selUnidad = tr ? tr.querySelector('select[data-field="unidad"]') : null;
+    const inpUnidadCustom = tr ? tr.querySelector('input[data-field="unidad-custom"]') : null;
+    const inpCantidad = tr ? tr.querySelector('input[data-field="cantidad"]') : null;
+    const inpPrecio = tr ? tr.querySelector('input[data-field="precio"]') : null;
+    const unidadSel = selUnidad ? selUnidad.value : (item.unidad || 'UND');
+    const unidadFinal = unidadSel === 'OTRO' ? (inpUnidadCustom ? String(inpUnidadCustom.value || '').trim() : '') : unidadSel;
+    if (unidadSel === 'OTRO' && !unidadFinal) {
+      showToast('Especifica la unidad personalizada', 'error');
+      if (inpUnidadCustom) inpUnidadCustom.focus();
+      return;
+    }
+    const cantidad = inpCantidad ? Number(inpCantidad.value) : Number(item.cantidad);
+    const precio = inpPrecio ? Number(inpPrecio.value) : Number(item.precio);
+    if (!Number.isFinite(cantidad) || !Number.isFinite(precio) || cantidad <= 0 || precio <= 0) {
+      showToast('La cantidad y el precio deben ser mayores a 0', 'error');
+      return;
+    }
+    const prevText = saveBtn.textContent;
+    (async () => {
+      try {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Guardando…';
+        saveBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        saveBtn.classList.remove('cursor-pointer');
+        const apiBase = config.apiBaseUrl || '/api/';
+        const url = apiBase.replace(/\/$/, '') + '/presupuesto_item_update.php';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: Number(id), unidad: unidadFinal, cantidad, precio })
+        });
+        if (!res.ok) throw new Error('Error guardando ítem');
+        const data = await res.json();
+        if (!data.success) throw new Error('Respuesta inválida del servidor');
+        items = items.map(it => it.id === id ? { ...it, unidad: unidadFinal, cantidad, precio, _dirty: false } : it);
+        render();
+        showToast('Ítem actualizado');
+      } catch (err) {
+        console.error(err);
+        showToast('No se pudo guardar el ítem', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = prevText;
+        saveBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        saveBtn.classList.add('cursor-pointer');
+      }
+    })();
+    return;
+  }
+  // Eliminar ítem
+  const deleteBtn = e.target.closest('button[data-action="delete"]');
+  if (deleteBtn) {
+    const id = deleteBtn.getAttribute('data-id');
+    const item = items.find(it => String(it.id) === String(id));
+    if (!item) return;
+    const { modal, textEl, yesBtn, cancelBtn, cardEl } = getDeleteConfirmModal();
+    if (!modal || !textEl || !yesBtn || !cancelBtn) return;
+    textEl.textContent = item.descripcion;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    // Animar entrada (fade + scale)
+    requestAnimationFrame(() => {
+      modal.classList.remove('opacity-0');
+      modal.classList.add('opacity-100');
+      if (cardEl) {
+        cardEl.classList.remove('scale-95');
+        cardEl.classList.add('scale-100');
       }
     });
-
-    doc.save(`presupuesto_${presupuestoId || ""}.pdf`);
-  });
-}
+    // Limpiar listeners previos
+    yesBtn.onclick = null;
+    cancelBtn.onclick = null;
+    let onEsc;
+    const hide = () => {
+      // Animar salida
+      modal.classList.remove('opacity-100');
+      modal.classList.add('opacity-0');
+      if (cardEl) {
+        cardEl.classList.remove('scale-100');
+        cardEl.classList.add('scale-95');
+      }
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        if (onEsc) document.removeEventListener('keydown', onEsc);
+        modal.onclick = null;
+      }, 200);
+    };
+    cancelBtn.onclick = hide;
+    onEsc = (ev) => { if (ev.key === 'Escape') hide(); };
+    document.addEventListener('keydown', onEsc);
+    modal.onclick = (ev) => { if (ev.target === modal) hide(); };
+    yesBtn.onclick = async () => {
+      try {
+        const apiBase = config.apiBaseUrl || "/api/";
+        const url = apiBase.replace(/\/$/, "") + "/presupuesto_item_delete.php";
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: Number(id) })
+        });
+        if (!res.ok) throw new Error("Error eliminando ítem");
+        const data = await res.json();
+        if (!data.success) throw new Error("Respuesta inválida del servidor");
+        await loadItemsFromBackend();
+        render();
+        showToast("Ítem eliminado", "info");
+      } catch (err) {
+        console.error(err);
+        showToast("No se pudo eliminar el ítem", "error");
+      } finally {
+        hide();
+      }
+    };
+    return;
+  }
+};
 // --- FIN DESCARGAR PDF ---
 // --- IMPORTAR CONTENIDO UI ---
 const importarBtn = document.getElementById("importar-btn");
@@ -522,10 +597,7 @@ form.addEventListener("submit", (e) => {
     showToast("La cantidad y el precio deben ser mayores a 0", "error");
     return;
   }
-  if (!actividadId) {
-    showToast("Actividad no definida", "error");
-    return;
-  }
+  // Ya no es necesario validar actividadId aquí, el presupuesto ya está relacionado a una actividad
   // Enviar al backend para crear el ítem
   (async () => {
     const submitBtn = form.querySelector('button[type="submit"]');
@@ -581,18 +653,16 @@ form.addEventListener("submit", (e) => {
 });
 
 // Evento para inputs de cantidad y precio en la tabla
-tbody.addEventListener("input", (e) => {
+function onTbodyNumericChange(e) {
   const target = e.target;
   if (!(target instanceof HTMLInputElement)) return;
   const id = target.getAttribute("data-id");
   const field = target.getAttribute("data-field");
-  const value = target.value;
+  if (!id || !field) return;
   if (field === "cantidad" || field === "precio") {
-    // Actualizar el valor y marcar como dirty
-    items = items.map((it) =>
-      it.id === id ? { ...it, [field]: Number(value), _dirty: true } : it
-    );
-    // Habilitar el botón Guardar solo para este ítem
+    const num = target.value === "" ? 0 : Number(target.value);
+    if (Number.isNaN(num)) return;
+    items = items.map((it) => (it.id === id ? { ...it, [field]: num, _dirty: true } : it));
     const tr = target.closest("tr");
     if (tr) {
       const btnGuardar = tr.querySelector('button[data-action="guardar"]');
@@ -603,68 +673,75 @@ tbody.addEventListener("input", (e) => {
         btnGuardar.classList.remove("opacity-10", "opacity-30");
         btnGuardar.classList.add("opacity-100");
       }
-      // Recalcular y actualizar el subtotal de esta fila
+      // Actualizar el subtotal (columna 6)
       const updated = items.find((it) => it.id === id);
-      const subtotalCell = tr.querySelector("td:nth-child(5)");
+      const subtotalCell = tr.querySelector("td:nth-child(6)");
       if (updated && subtotalCell) {
         const subtotal = Number(updated.cantidad) * Number(updated.precio);
         subtotalCell.textContent = format(subtotal);
       }
     }
-    // Actualizar el total general
     totalCell.textContent = format(calcTotal());
   }
-});
-// Evento para el botón Guardar en cada fila
-tbody.addEventListener("click", (e) => {
-  const btn = e.target.closest('button[data-action="guardar"]');
-  if (!btn) return;
-  const id = btn.getAttribute("data-id");
-  const tr = btn.closest("tr");
-  if (!tr || !id) return;
-  // Leer valores actuales de la fila
-  const cantidadInput = tr.querySelector('input[data-field="cantidad"][data-id="' + id + '"]');
-  const precioInput = tr.querySelector('input[data-field="precio"][data-id="' + id + '"]');
-  const unidadSelect = tr.querySelector('select[data-field="unidad"][data-id="' + id + '"]');
-  const unidadCustom = tr.querySelector('input[data-field="unidad-custom"][data-id="' + id + '"]');
-  const cantidad = Number(cantidadInput?.value || 0);
-  const precio = Number(precioInput?.value || 0);
-  let unidadVal = "UND";
-  if (unidadSelect) {
-    if (unidadSelect.value === "OTRO") {
-      unidadVal = String(unidadCustom?.value || "").trim() || "UND";
-    } else {
-      unidadVal = String(unidadSelect.value).trim() || "UND";
-    }
+}
+
+tbody.addEventListener("input", onTbodyNumericChange);
+tbody.addEventListener("change", onTbodyNumericChange);
+
+// Cambios en unidad (select) dentro de la tabla
+tbody.addEventListener('change', (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLSelectElement)) return;
+  if (target.getAttribute('data-field') !== 'unidad') return;
+  const id = target.getAttribute('data-id');
+  const tr = target.closest('tr');
+  const custom = tr ? tr.querySelector('input[data-field="unidad-custom"]') : null;
+  const val = target.value;
+  if (val === 'OTRO') {
+    if (custom) custom.classList.remove('hidden');
+  } else {
+    if (custom) { custom.classList.add('hidden'); custom.value = ''; }
+    items = items.map(it => it.id === id ? { ...it, unidad: val, _dirty: true } : it);
   }
-  // Guardar en backend
-  (async () => {
-    try {
-      const apiBase = config.apiBaseUrl || "/api/";
-      const url = apiBase.replace(/\/$/, "") + "/presupuesto_item_update.php";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: Number(id), cantidad, precio, unidad: unidadVal }),
-      });
-      if (!res.ok) throw new Error("Error guardando ítem");
-      const data = await res.json();
-      if (!data.success) throw new Error("Respuesta inválida del servidor");
-      // Actualizar estado local
-      items = items.map((it) => (it.id === id ? { ...it, cantidad, precio, unidad: unidadVal, _dirty: false } : it));
-      // Desactivar botón y cursor
-      btn.disabled = true;
-      btn.classList.remove("cursor-pointer", "opacity-100");
-      btn.classList.add("cursor-not-allowed", "opacity-10");
-      // Recalcular subtotal y total
-      const subtotalCell = tr.querySelector("td:nth-child(5)");
-      if (subtotalCell) subtotalCell.textContent = format(cantidad * precio);
-      totalCell.textContent = format(calcTotal());
-      showToast("Ítem guardado");
-    } catch (err) {
-      console.error(err);
-      showToast("No se pudo guardar el ítem", "error");
-    }
-  })();
+  const btnGuardar = tr ? tr.querySelector('button[data-action="guardar"]') : null;
+  if (btnGuardar) {
+    btnGuardar.disabled = false;
+    btnGuardar.classList.remove('cursor-not-allowed');
+    btnGuardar.classList.add('cursor-pointer');
+    btnGuardar.classList.remove('opacity-10', 'opacity-30');
+    btnGuardar.classList.add('opacity-100');
+  }
 });
-// ...existing code...
+
+// Especificación de unidad personalizada dentro de la tabla
+tbody.addEventListener('input', (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.getAttribute('data-field') !== 'unidad-custom') return;
+  const id = target.getAttribute('data-id');
+  const tr = target.closest('tr');
+  const val = String(target.value || '').trim();
+  items = items.map(it => it.id === id ? { ...it, unidad: val, _dirty: true } : it);
+  const btnGuardar = tr ? tr.querySelector('button[data-action="guardar"]') : null;
+  if (btnGuardar) {
+    btnGuardar.disabled = false;
+    btnGuardar.classList.remove('cursor-not-allowed');
+    btnGuardar.classList.add('cursor-pointer');
+    btnGuardar.classList.remove('opacity-10', 'opacity-30');
+    btnGuardar.classList.add('opacity-100');
+  }
+});
+// (El listener de guardar y eliminar ahora se maneja por delegación en render)
+
+
+// --- INICIALIZACIÓN: cargar ítems y renderizar al inicio ---
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await loadItemsFromBackend();
+  } catch (e) {
+    console.error('Error al cargar ítems iniciales', e);
+  }
+  render();
+});
+
+
