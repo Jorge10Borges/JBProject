@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contabilidad de Obra</title>
+    <link rel="stylesheet" crossorigin href="/dist/assets/index-zpmfiln1.css">
+  </head>
+  <body class="min-h-dvh bg-zinc-50 text-zinc-900 font-sans flex" data-sidebar-open="false">
+    <app-side-nav data-active="contabilidad"></app-side-nav>
+    <main class="flex-1 px-8 py-8">
+      <div class="md:hidden mb-4">
+        <button data-sidebar-toggle class="inline-flex items-center gap-2 rounded bg-brand-600 px-3 py-2 text-white text-sm hover:bg-brand-700 cursor-pointer">☰ Menu</button>
+      </div>
+      <h1 class="text-2xl font-semibold mb-2">Contabilidad de Obra</h1>
+      <h2 id="contabilidad-subtitle" class="text-lg font-medium mb-6 text-zinc-700">Gestión financiera del presupuesto</h2>
+      <section class="space-y-4 mb-8">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Selecciona el presupuesto</h2>
+        </div>
+        <div class="flex flex-col md:flex-row gap-4">
+          <div class="flex-1 min-w-0">
+            <label for="select-proyecto" class="block text-xs font-medium text-zinc-600 mb-1">Proyecto</label>
+            <select id="select-proyecto" class="w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Selecciona un proyecto…</option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-0">
+            <label for="select-actividad" class="block text-xs font-medium text-zinc-600 mb-1">Actividad</label>
+            <select id="select-actividad" class="w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+              <option value="">Selecciona una actividad…</option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-0">
+            <label for="select-presupuesto" class="block text-xs font-medium text-zinc-600 mb-1">Presupuesto</label>
+            <select id="select-presupuesto" class="w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+              <option value="">Selecciona un presupuesto…</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      <!-- Aquí irá el dashboard financiero y las funcionalidades -->
+    </main>
+    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/contabilidad.js"></script>
+  </body>
+</html>
