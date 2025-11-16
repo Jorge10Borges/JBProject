@@ -12,7 +12,7 @@ if (!$presupuesto_id) {
 }
 
 $mysqli = get_mysqli();
-$sql = "SELECT p.id, p.nombre, p.monto, p.ejecutado, p.avance, p.actividades_id FROM presupuesto p WHERE p.id = ? LIMIT 1";
+$sql = "SELECT p.id, p.nombre, p.monto, p.ejecutado, p.avance, p.actividades_id, p.estado FROM presupuesto p WHERE p.id = ? LIMIT 1";
 $stmt = $mysqli->prepare($sql);
 $stmt->bind_param('i', $presupuesto_id);
 $stmt->execute();

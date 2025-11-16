@@ -31,6 +31,8 @@ if (estadoPresupuestoSelect && presupuestoId) {
     } catch (err) {
       showToast("No se pudo actualizar el estado", "error");
     }
+    // Forzar render para aplicar cambios visuales
+    render();
   });
 }
 import jsPDF from "jspdf";
@@ -231,6 +233,34 @@ function render() {
   // ...solo renderizado, sin delegación de eventos...
   if (!tbody || !totalCell) return;
   tbody.innerHTML = "";
+
+  // Obtener el estado actual del presupuesto
+  const estado = estadoPresupuestoSelect ? estadoPresupuestoSelect.value : '';
+  const esAprobado = estado === 'aprobado';
+
+  // Ocultar columna de acciones en thead y tfoot si es aprobado
+  // Usar variables únicas para estado y esAprobado
+  if (typeof window._estadoPresupuesto === 'undefined') window._estadoPresupuesto = '';
+  if (typeof window._esAprobado === 'undefined') window._esAprobado = false;
+  if (estadoPresupuestoSelect) {
+    window._estadoPresupuesto = estadoPresupuestoSelect.value;
+    window._esAprobado = window._estadoPresupuesto === 'aprobado';
+  }
+  // Usar directamente window._estadoPresupuesto y window._esAprobado en el resto del render()
+  // Thead
+  const table = tbody.closest('table');
+  if (table) {
+    const ths = table.querySelectorAll('thead th');
+    if (ths.length > 6) {
+      ths[6].style.display = esAprobado ? 'none' : '';
+    }
+    // Tfoot
+    const tds = table.querySelectorAll('tfoot td');
+    if (tds.length > 6) {
+      tds[6].style.display = esAprobado ? 'none' : '';
+    }
+  }
+
   items.forEach((it, idx) => {
     const tr = document.createElement("tr");
     const subtotal = it.cantidad * it.precio;
@@ -238,19 +268,20 @@ function render() {
     const selectedUnit = isKnown ? it.unidad : "OTRO";
     const customUnit = selectedUnit === "OTRO" ? it.unidad || "" : "";
 
+    // Si es aprobado, ocultar acciones y botón de editar descripción
     tr.innerHTML = `
       <td class="px-3 py-2 text-center align-top">${idx + 1}</td>
       <td class="px-3 py-2 align-top">
         <div class="flex items-center gap-2 group">
           <span class="block font-medium">${it.descripcion}</span>
-          <button title="Editar descripción" class="opacity-0 group-hover:opacity-100 transition cursor-pointer edit-desc-btn" data-action="edit-desc" data-id="${it.id}" aria-label="Editar descripción">
+          ${!esAprobado ? `<button title="Editar descripción" class="opacity-0 group-hover:opacity-100 transition cursor-pointer edit-desc-btn" data-action="edit-desc" data-id="${it.id}" aria-label="Editar descripción">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-edit">
               <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
               <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
               <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
               <path d="M16 5l3 3" />
             </svg>
-          </button>
+          </button>` : ''}
           <button title="Copiar descripción" class="opacity-0 group-hover:opacity-100 transition cursor-pointer copy-desc-btn" data-action="copy-desc" data-id="${it.id}" aria-label="Copiar descripción">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-copy">
               <rect x="8" y="8" width="12" height="12" rx="2" />
@@ -272,10 +303,10 @@ function render() {
         <input type="number" min="0" step="0.01" value="${it.precio}" data-id="${it.id}" data-field="precio" class="w-24 rounded border border-zinc-300 px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
       </td>
       <td class="px-3 py-2 text-right align-top font-medium">${format(subtotal)}</td>
-      <td class="px-3 py-2 text-center align-top flex gap-2 justify-center">
+      ${!esAprobado ? `<td class="px-3 py-2 text-center align-top flex gap-2 justify-center">
         <button data-action="guardar" data-id="${it.id}" class="text-xs rounded bg-brand-100 text-brand-700 px-2 py-1 hover:bg-brand-200 ${it._dirty ? "cursor-pointer opacity-100" : "cursor-not-allowed opacity-10"}" ${it._dirty ? "" : "disabled"}>Guardar</button>
         <button data-action="delete" data-id="${it.id}" class="text-xs rounded bg-red-100 text-red-700 px-2 py-1 hover:bg-red-200 cursor-pointer">Eliminar</button>
-      </td>
+      </td>` : ''}
     `;
     tbody.appendChild(tr);
   });
@@ -334,6 +365,10 @@ async function setProjectAndActividadTitles() {
         if (projectTitle) projectTitle.textContent = proyectoNombre ? `Proyecto: ${proyectoNombre}` : '';
         if (actividadTitle) actividadTitle.textContent = actividadNombre ? `Actividad: ${actividadNombre}` : '';
         if (presupuestoH2) presupuestoH2.textContent = presData.nombre ? `Presupuesto: ${presData.nombre}` : 'Presupuesto';
+        // Sincronizar el select de estado con el valor real
+        if (estadoPresupuestoSelect && presData.estado) {
+          estadoPresupuestoSelect.value = presData.estado;
+        }
       }
     }
   } catch (e) {
