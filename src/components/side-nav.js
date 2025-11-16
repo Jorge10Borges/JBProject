@@ -49,6 +49,7 @@ class AppSideNav extends HTMLElement {
         </div>
         ${this.link('Dashboard','index.html','home', iconDashboard, collapsed)}
         ${this.link('Proyectos','proyectos.html','proyectos', iconProyectos, collapsed)}
+        ${this.link('Contabilidad','contabilidad.html','contabilidad', iconDashboard, collapsed)}
       </nav>
     `;
   }
