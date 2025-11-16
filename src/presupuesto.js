@@ -1,21 +1,92 @@
+
+// Utilidad para formatear números
+function format(num) {
+  return Number(num).toFixed(2);
+}
+
+// Obtener parámetros de la URL (debe ir antes de cualquier uso)
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+const presupuestoId = getQueryParam("id");
+
+const estadoPresupuestoSelect = document.getElementById("estado-presupuesto-select");
+if (estadoPresupuestoSelect && presupuestoId) {
+  estadoPresupuestoSelect.addEventListener("change", async (e) => {
+    const nuevoEstado = estadoPresupuestoSelect.value;
+    try {
+      const apiBase = config.apiBaseUrl || "/api/";
+      const url = apiBase.replace(/\/$/, "") + "/presupuesto_item_update.php";
+      // Usamos el mismo endpoint de update, pero debes crear uno específico si lo prefieres
+      const res = await fetch(apiBase.replace(/\/$/, "") + "/presupuesto_update.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: Number(presupuestoId), estado: nuevoEstado })
+      });
+      if (!res.ok) throw new Error("Error actualizando estado");
+      const data = await res.json();
+      if (!data.success) throw new Error("Respuesta inválida del servidor");
+      showToast("Estado actualizado a '" + nuevoEstado + "'", "info");
+    } catch (err) {
+      showToast("No se pudo actualizar el estado", "error");
+    }
+  });
+}
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+const descargarPdfBtn = document.getElementById("descargar-pdf-btn");
+
+if (descargarPdfBtn) {
+  descargarPdfBtn.addEventListener("click", async () => {
+    // Obtener títulos
+    const projectTitle = document.getElementById("project-title")?.textContent || "";
+    const actividadTitle = document.getElementById("actividad-title")?.textContent || "";
+    const presupuestoTitle = document.getElementById("presupuesto-title")?.textContent || "";
+
+    // Preparar datos de la tabla
+    const head = [["#", "Descripción", "Unidad", "Cantidad", "Precio Unitario", "Subtotal"]];
+    const body = items.map((it, idx) => [
+      idx + 1,
+      it.descripcion,
+      it.unidad,
+      it.cantidad,
+      format(it.precio),
+      format(it.cantidad * it.precio)
+    ]);
+    const total = calcTotal();
+
+    // Crear PDF
+    const doc = new jsPDF();
+    let y = 14;
+    doc.setFontSize(14);
+    doc.text(projectTitle, 14, y);
+    y += 8;
+    if (actividadTitle) { doc.setFontSize(12); doc.text(actividadTitle, 14, y); y += 8; }
+    if (presupuestoTitle) { doc.setFontSize(12); doc.text(presupuestoTitle, 14, y); y += 10; }
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: y,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [34, 197, 94] },
+      theme: 'grid',
+      margin: { left: 14, right: 14 },
+    });
+    const finalY = doc.lastAutoTable?.finalY || y + 20;
+    doc.setFontSize(12);
+    doc.text(`Total: $${format(total)}`, 14, finalY + 10);
+
+    doc.save("presupuesto.pdf");
+  });
+}
 import "./styles/app.css";
 import "./components/side-nav.js";
 import "./sidebar.js";
 import { config, getItemsUrl } from "./config.js";
 document.body.dataset.active = "presupuesto";
 
-// Utilidades
-function format(num) {
-  return Number(num).toFixed(2);
-}
-
-// Obtener parámetros de la URL
-function getQueryParam(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
-
-const presupuestoId = getQueryParam("id");
 const projectId = getQueryParam("project_id");
 const actividadId = getQueryParam("actividad_id");
 
@@ -228,7 +299,47 @@ async function setProjectAndActividadTitles() {
   const projectTitle = document.getElementById("project-title");
   const actividadTitle = document.getElementById("actividad-title");
   const presupuestoH2 = document.getElementById("presupuesto-title");
-    // ...solo renderizado, sin delegación de eventos...
+
+  // Obtener info del presupuesto
+  let actividadNombre = '';
+  let proyectoNombre = '';
+  try {
+    if (presupuestoId) {
+      const apiBase = config.apiBaseUrl || "/api/";
+      // 1. Obtener info del presupuesto (incluye actividades_id)
+      const presUrl = apiBase.replace(/\/$/, "") + `/presupuesto_info.php?id=${encodeURIComponent(presupuestoId)}`;
+      const presRes = await fetch(presUrl);
+      if (presRes.ok) {
+        const presData = await presRes.json();
+        actividadNombre = '';
+        // 2. Obtener nombre de la actividad
+        if (presData.actividades_id) {
+          const actUrl = apiBase.replace(/\/$/, "") + `/actividad_info.php?id=${encodeURIComponent(presData.actividades_id)}`;
+          const actRes = await fetch(actUrl);
+          if (actRes.ok) {
+            const actData = await actRes.json();
+            actividadNombre = actData.nombre || '';
+            // 3. Obtener nombre del proyecto
+            if (actData.project_id) {
+              const projUrl = apiBase.replace(/\/$/, "") + `/projects.php`;
+              const projRes = await fetch(projUrl);
+              if (projRes.ok) {
+                const projects = await projRes.json();
+                const found = projects.find(p => String(p.id) === String(actData.project_id));
+                if (found) proyectoNombre = found.name || '';
+              }
+            }
+          }
+        }
+        if (projectTitle) projectTitle.textContent = proyectoNombre ? `Proyecto: ${proyectoNombre}` : '';
+        if (actividadTitle) actividadTitle.textContent = actividadNombre ? `Actividad: ${actividadNombre}` : '';
+        if (presupuestoH2) presupuestoH2.textContent = presData.nombre ? `Presupuesto: ${presData.nombre}` : 'Presupuesto';
+      }
+    }
+  } catch (e) {
+    if (projectTitle) projectTitle.textContent = '';
+    if (actividadTitle) actividadTitle.textContent = '';
+  }
 }
 
 // Delegación de eventos para editar, copiar y eliminar ítems (solo una vez, fuera de cualquier función)
@@ -476,7 +587,7 @@ async function cargarPresupuestosParaImportar() {
   importarPresupuestoSelect.innerHTML = '<option value="">Selecciona…</option>';
   try {
     const apiBase = config.apiBaseUrl || "/api/";
-    const url = apiBase.replace(/\/$/, "") + `/presupuestos_by_actividad.php?actividad_id=${encodeURIComponent(actividadId)}`;
+    const url = apiBase.replace(/\/$/, "") + `/presupuesto.php`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("No se pudieron cargar los presupuestos");
     const presupuestos = await res.json();
@@ -735,9 +846,11 @@ tbody.addEventListener('input', (e) => {
 
 
 // --- INICIALIZACIÓN: cargar ítems y renderizar al inicio ---
+
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     await loadItemsFromBackend();
+    await setProjectAndActividadTitles();
   } catch (e) {
     console.error('Error al cargar ítems iniciales', e);
   }
