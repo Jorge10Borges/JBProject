@@ -10,6 +10,7 @@ class AppSideNav extends HTMLElement {
     const collapsed = document.body.dataset.sidebarCollapsed === 'true';
 
     const widthCls = collapsed ? 'md:w-20' : 'md:w-56';
+    // Fixed solo en móvil, static en desktop
     const baseClasses = `fixed md:static left-0 top-0 z-50 flex flex-col gap-1 p-4 ${widthCls} bg-brand-SlateBlue text-white min-h-dvh transition-transform md:translate-x-0`;
     const mobileHidden = open ? 'translate-x-0' : '-translate-x-full';
 
