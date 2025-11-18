@@ -47,6 +47,40 @@ const selectProyecto = document.getElementById("select-proyecto");
 const selectActividad = document.getElementById("select-actividad");
 const selectPresupuesto = document.getElementById("select-presupuesto");
 
+// --- Persistencia de estado (selecciones y borrador) ---
+const STORAGE_KEYS = {
+  proyecto: "contab_proyecto",
+  actividad: "contab_actividad",
+  presupuesto: "contab_presupuesto",
+  draft: "contab_draft_anticipo"
+};
+
+function saveSelection(key, value) {
+  try { localStorage.setItem(key, value || ""); } catch {}
+}
+
+function getSelection(key) {
+  try { return localStorage.getItem(key) || ""; } catch { return ""; }
+}
+
+function saveDraft() {
+  const draft = {
+    anticipo: inputAnticipo?.value || "",
+    fecha: inputFechaAnticipo?.value || ""
+  };
+  try { sessionStorage.setItem(STORAGE_KEYS.draft, JSON.stringify(draft)); } catch {}
+}
+
+function restoreDraft() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.draft);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft?.anticipo != null) inputAnticipo.value = draft.anticipo;
+    if (draft?.fecha != null) inputFechaAnticipo.value = draft.fecha;
+  } catch {}
+}
+
 async function cargarProyectos() {
   const apiBase = config.apiBaseUrl || "/api/";
   const res = await fetch(apiBase.replace(/\/$/, "") + "/projects.php");
@@ -135,21 +169,105 @@ async function cargarKPIs(presupuestoId) {
   }
 }
 
+// --- Tabs UI ---
+const TAB_KEY = 'contab_active_tab';
+function setActiveTab(name) {
+  const btns = document.querySelectorAll('[data-tab-btn]');
+  const panels = {
+    anticipo: document.getElementById('panel-anticipo'),
+    avance: document.getElementById('panel-avance')
+  };
+  btns.forEach(btn => {
+    const isActive = btn.dataset.tab === name;
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    // Asegurar base: siempre con borde inferior para tabs
+    btn.classList.toggle('border-b-2', true);
+    // Activa: color de marca, borde marcado y semibold
+    if (isActive) {
+      btn.classList.add('border-brand-600', 'text-brand-700', 'font-semibold', 'bg-white', 'rounded-t-md', 'shadow-sm');
+      btn.classList.remove('text-zinc-600', 'bg-transparent');
+    } else {
+      // Inactiva: borde transparente, texto zinc
+      btn.classList.remove('border-brand-600', 'text-brand-700', 'font-semibold', 'bg-white', 'rounded-t-md', 'shadow-sm');
+      btn.classList.add('text-zinc-600', 'bg-transparent');
+    }
+  });
+  Object.entries(panels).forEach(([key, el]) => {
+    if (!el) return;
+    if (key === name) el.classList.remove('hidden'); else el.classList.add('hidden');
+  });
+  try { localStorage.setItem(TAB_KEY, name); } catch {}
+}
+
+function initTabs() {
+  const btns = document.querySelectorAll('[data-tab-btn]');
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+  });
+  let saved = 'anticipo';
+  try { saved = localStorage.getItem(TAB_KEY) || 'anticipo'; } catch {}
+  setActiveTab(saved);
+}
+
 
 selectProyecto.addEventListener("change", e => {
-  cargarActividades(e.target.value);
+  const projectId = e.target.value;
+  saveSelection(STORAGE_KEYS.proyecto, projectId);
+  // Reset dependientes
+  saveSelection(STORAGE_KEYS.actividad, "");
+  saveSelection(STORAGE_KEYS.presupuesto, "");
+  cargarActividades(projectId);
   limpiarKPIs();
 });
 
 selectActividad.addEventListener("change", e => {
-  cargarPresupuestos(e.target.value);
+  const actividadId = e.target.value;
+  saveSelection(STORAGE_KEYS.actividad, actividadId);
+  // Reset dependiente
+  saveSelection(STORAGE_KEYS.presupuesto, "");
+  cargarPresupuestos(actividadId);
   limpiarKPIs();
 });
 
 selectPresupuesto.addEventListener("change", e => {
-  cargarKPIs(e.target.value);
+  const presupuestoId = e.target.value;
+  saveSelection(STORAGE_KEYS.presupuesto, presupuestoId);
+  cargarKPIs(presupuestoId);
 });
 
-// Inicial
-cargarProyectos();
-limpiarKPIs();
+// Guardar borrador en tiempo real y restaurar al cargar
+inputAnticipo?.addEventListener("input", saveDraft);
+inputFechaAnticipo?.addEventListener("input", saveDraft);
+
+// Limpia borrador al guardar correctamente
+formAnticipo?.addEventListener("submit", () => {
+  try { sessionStorage.removeItem(STORAGE_KEYS.draft); } catch {}
+});
+
+// Inicial con restauración de estado en cascada
+async function init() {
+  await cargarProyectos();
+  const savedProyecto = getSelection(STORAGE_KEYS.proyecto);
+  const savedActividad = getSelection(STORAGE_KEYS.actividad);
+  const savedPresupuesto = getSelection(STORAGE_KEYS.presupuesto);
+
+  if (savedProyecto) {
+    selectProyecto.value = savedProyecto;
+    await cargarActividades(savedProyecto);
+    if (savedActividad) {
+      selectActividad.value = savedActividad;
+      await cargarPresupuestos(savedActividad);
+      if (savedPresupuesto) {
+        selectPresupuesto.value = savedPresupuesto;
+        await cargarKPIs(savedPresupuesto);
+      }
+    }
+  } else {
+    limpiarKPIs();
+  }
+
+  restoreDraft();
+  initTabs();
+}
+
+init();
