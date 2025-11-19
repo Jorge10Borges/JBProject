@@ -1,4 +1,0 @@
-# Ignorar archivos de configuración sensibles y de entorno
-.env
-.env.*
-api/config.php
